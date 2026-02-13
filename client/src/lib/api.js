@@ -1,3 +1,4 @@
+// Fixed Port to 5010
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5010";
 
 export const apiRequest = async (path, { method = "GET", body, token } = {}) => {
@@ -30,25 +31,9 @@ export const apiRequest = async (path, { method = "GET", body, token } = {}) => 
 
 export const downloadInvoice = async (orderId, token) => {
   const res = await fetch(`${API_BASE}/api/invoice/${orderId}`, {
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {})
-    }
+    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }
   });
-
-  if (!res.ok) {
-    const text = await res.text();
-    let data = {};
-    if (text) {
-      try {
-        data = JSON.parse(text);
-      } catch (error) {
-        data = {};
-      }
-    }
-    const message = data?.message || data?.error || "Unable to fetch invoice";
-    throw new Error(message);
-  }
-
+  if (!res.ok) throw new Error("Download failed");
   return res.blob();
 };
 

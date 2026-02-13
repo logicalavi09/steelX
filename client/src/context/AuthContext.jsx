@@ -1,29 +1,33 @@
-import { createContext, useState, useEffect } from "react";
+import { createContext, useContext, useState } from "react";
 
-export const AuthContext = createContext();
+const AuthContext = createContext();
 
-export default function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+export function AuthProvider({ children }) {
+  const [token, setToken] = useState(() => localStorage.getItem("steelx_token") || "");
+  const [user, setUser] = useState(() => {
+    const stored = localStorage.getItem("steelx_user");
+    return stored ? JSON.parse(stored) : null;
+  });
 
-  useEffect(() => {
-    const stored = localStorage.getItem("user");
-    if (stored) setUser(JSON.parse(stored));
-  }, []);
-
-  const login = (data) => {
-    localStorage.setItem("token", data.token);
-    localStorage.setItem("user", JSON.stringify(data.user));
-    setUser(data.user);
+  const login = (tokenValue, userValue) => {
+    setToken(tokenValue);
+    setUser(userValue);
+    localStorage.setItem("steelx_token", tokenValue);
+    localStorage.setItem("steelx_user", JSON.stringify(userValue));
   };
 
   const logout = () => {
-    localStorage.clear();
+    setToken("");
     setUser(null);
+    localStorage.removeItem("steelx_token");
+    localStorage.removeItem("steelx_user");
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ token, user, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
 }
+
+export const useAuth = () => useContext(AuthContext);

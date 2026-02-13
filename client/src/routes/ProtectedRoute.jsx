@@ -1,11 +1,9 @@
-import { useContext } from "react";
-import { AuthContext } from "../context/AuthContext";
 import { Navigate } from "react-router-dom";
 
-export default function ProtectedRoute({ children }) {
-  const { user } = useContext(AuthContext);
+const ProtectedRoute = ({ children }) => {
+  const token = localStorage.getItem("steelx_token");
+  // Agar token nahi hai toh login par bhejo
+  return token ? children : <Navigate to="/" replace />;
+};
 
-  if (!user) return <Navigate to="/login" />;
-
-  return children;
-}
+export default ProtectedRoute;

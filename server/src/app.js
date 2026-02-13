@@ -1,4 +1,4 @@
-import "dotenv/config"; // Sabse upar load karna zaroori hai
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import http from "http";
@@ -16,53 +16,17 @@ import invoiceRoutes from "./routes/invoiceRoutes.js";
 
 const app = express();
 
-// Middleware
-app.use(cors());
+// --- CORS CONFIG (PORT 5010 SUPPORT) ---
+app.use(cors({
+  origin: "*", 
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
+
 app.use(express.json());
 
-// HTTP Server (for Socket.IO)
-const server = http.createServer(app);
-
-// Socket.IO Setup
-const io = new Server(server, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"]
-  }
-});
-
-// Database
+// Database Connection
 connectDB();
-
-// Socket Events
-io.on("connection", (socket) => {
-  console.log("User connected:", socket.id);
-
-  socket.on("joinOrderRoom", (orderId) => {
-    socket.join(orderId);
-    console.log(`User joined room ${orderId}`);
-  });
-
-  socket.on("sendMessage", ({ orderId, message, sender }) => {
-    io.to(orderId).emit("receiveMessage", {
-      message,
-      sender,
-      time: new Date()
-    });
-  });
-
-  socket.on("orderStatusUpdate", ({ orderId, status }) => {
-    io.to(orderId).emit("statusUpdated", {
-      orderId,
-      status,
-      time: new Date()
-    });
-  });
-
-  socket.on("disconnect", () => {
-    console.log("User disconnected:", socket.id);
-  });
-});
 
 // Routes
 app.use("/api/auth", authRoutes);
@@ -76,11 +40,16 @@ app.use("/api/invoice", invoiceRoutes);
 
 // Health Check
 app.get("/api/health", (req, res) => {
-  res.json({ status: "SteelX Backend Live 🚀 + Realtime" });
+  res.json({ status: "SteelX Backend Live on 5010 🚀" });
 });
 
-// Server Start
-const PORT = process.env.PORT || 5000;
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: { origin: "*", methods: ["GET", "POST"] }
+});
+
+// --- SET PORT TO 5010 ---
+const PORT = process.env.PORT || 5010; 
 server.listen(PORT, () => {
-  console.log(`Server running with HTTP + Socket.IO on port ${PORT}`);
+  console.log(`✅ SERVER RUNNING ON PORT: ${PORT}`);
 });
