@@ -12,14 +12,15 @@ export const sendOTP = async (req, res) => {
     const otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
 
     if (!user) {
-      user = await User.create({ name, phone, otp, otpExpiry, role: "admin" }); // Naya user admin banega
+      // Development ke liye naya user hamesha admin banega
+      user = await User.create({ name, phone, otp, otpExpiry, role: "admin" });
     } else {
       user.otp = otp;
       user.otpExpiry = otpExpiry;
       await user.save();
     }
 
-    console.log("OTP FOR TESTING:", otp);
+    console.log(`[AUTH] OTP for ${phone}: ${otp}`);
     res.json({ success: true, message: "OTP sent successfully" });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -35,9 +36,7 @@ export const verifyOTP = async (req, res) => {
       return res.status(400).json({ message: "Invalid OTP" });
     }
 
-    // --- ADMIN CHEAT CODE ---
-    // Dev environment mein tumhe hamesha admin banane ke liye
-    user.role = "admin"; 
+    // OTP Verify hone par verified mark karo
     user.isVerified = true;
     user.otp = null;
     user.otpExpiry = null;

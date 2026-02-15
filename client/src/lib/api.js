@@ -29,11 +29,17 @@ export const apiRequest = async (path, { method = "GET", body, token } = {}) => 
   return data;
 };
 
+// FIX: Ensure blob is returned correctly without extra checks that might corrupt it
 export const downloadInvoice = async (orderId, token) => {
   const res = await fetch(`${API_BASE}/api/invoice/${orderId}`, {
     headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }
   });
-  if (!res.ok) throw new Error("Download failed");
+  
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.message || "Download failed");
+  }
+  
   return res.blob();
 };
 

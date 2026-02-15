@@ -4,6 +4,6 @@ import { protect, authorizeRoles } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-router.post("/create", protect, authorizeRoles("customer"), createPayment);
+router.post("/create", protect, authorizeRoles("customer", "admin"), createPayment);
 
 export default router;

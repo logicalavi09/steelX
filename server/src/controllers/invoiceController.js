@@ -6,6 +6,11 @@ export const generateInvoice = async (req, res) => {
   try {
     const { orderId } = req.params;
 
+    // Check if orderId is valid
+    if (!orderId || orderId === 'undefined') {
+      return res.status(400).json({ message: "Invalid Order ID" });
+    }
+
     const order = await Order.findById(orderId)
       .populate("customer", "name phone")
       .populate("branch", "name address phone")
@@ -17,53 +22,65 @@ export const generateInvoice = async (req, res) => {
 
     const doc = new PDFDocument({ size: "A4", margin: 50 });
 
+    // FIX: Content-Disposition 'attachment' se file download hogi, 'inline' se browser mein khulegi
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `inline; filename=invoice_${orderId}.pdf`);
+    res.setHeader("Content-Disposition", `attachment; filename=invoice_${orderId}.pdf`);
 
     doc.pipe(res);
 
-    doc.fontSize(20).text("STEELX PRO INVOICE", { align: "center" });
+    doc.fontSize(24).text("STEELX PRO", { align: "center", characterSpacing: 2 });
+    doc.fontSize(10).text("OFFICIAL TAX INVOICE", { align: "center" });
     doc.moveDown();
 
-    doc.fontSize(12).text(`Invoice ID: ${order._id}`);
-    doc.text(`Date: ${new Date().toLocaleDateString()}`);
+    doc.fontSize(10).text(`Invoice ID: ${order._id}`);
+    doc.text(`Date: ${new Date(order.createdAt).toLocaleDateString()}`);
     doc.moveDown();
 
-    doc.text(`Customer: ${order.customer.name}`);
-    doc.text(`Phone: ${order.customer.phone}`);
+    doc.fontSize(12).text("BILL TO:", { underline: true });
+    doc.fontSize(10).text(`Customer: ${order.customer?.name || 'N/A'}`);
+    doc.text(`Phone: ${order.customer?.phone || 'N/A'}`);
     doc.moveDown();
 
-    doc.text(`Branch: ${order.branch.name}`);
-    doc.text(`Address: ${order.branch.address}`);
+    doc.fontSize(12).text("DISPATCH FROM:", { underline: true });
+    doc.fontSize(10).text(`Branch: ${order.branch?.name || 'Main Center'}`);
+    doc.text(`Address: ${order.branch?.address || 'N/A'}`);
     doc.moveDown();
 
-    doc.text("Items:");
-    doc.moveDown();
-
+    doc.text("--------------------------------------------------------------------------------------------------");
+    doc.text("ITEM DESCRIPTION | QTY | PRICE", { bold: true });
+    doc.text("--------------------------------------------------------------------------------------------------");
+    
     order.items.forEach((item, index) => {
+      const productName = item.product?.name || "Unknown Product";
       doc.text(
-        `${index + 1}. ${item.product.name} | Qty: ${item.quantity} | Price: ₹${item.price}`
+        `${index + 1}. ${productName} | ${item.quantity} ${item.product?.unit || ''} | ₹${item.price}`
       );
     });
+    doc.text("--------------------------------------------------------------------------------------------------");
 
     doc.moveDown();
     const gst = (order.totalAmount * 0.18).toFixed(2);
     const grandTotal = (order.totalAmount + parseFloat(gst)).toFixed(2);
 
-    doc.text(`Subtotal: ₹${order.totalAmount}`);
+    doc.fontSize(10).text(`Subtotal: ₹${order.totalAmount}`);
     doc.text(`GST (18%): ₹${gst}`);
-    doc.fontSize(14).text(`Grand Total: ₹${grandTotal}`);
+    doc.fontSize(14).text(`Grand Total: ₹${grandTotal}`, { bold: true });
 
     doc.moveDown(2);
 
-    const qrData = `https://steelx.local/order/${order._id}`;
+    // QR Code logic
+    const qrData = `https://steelx.pro/track/${order._id}`;
     const qrImage = await QRCode.toBuffer(qrData);
 
-    doc.image(qrImage, { width: 100 });
-    doc.text("Scan to Track Order");
+    doc.image(qrImage, { width: 80 });
+    doc.fontSize(8).text("Scan to Track Shipment", { indent: 10 });
 
     doc.end();
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error("PDF Gen Error:", error);
+    // Error aane par JSON response bhejein
+    if (!res.headersSent) {
+      res.status(500).json({ message: "Error generating PDF: " + error.message });
+    }
   }
 };

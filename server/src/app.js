@@ -16,9 +16,9 @@ import invoiceRoutes from "./routes/invoiceRoutes.js";
 
 const app = express();
 
-// --- CORS CONFIG (PORT 5010 SUPPORT) ---
+// --- CORS CONFIG ---
 app.use(cors({
-  origin: "*", 
+  origin: "*",
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
@@ -43,9 +43,24 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "SteelX Backend Live on 5010 🚀" });
 });
 
+// Create Server
 const server = http.createServer(app);
+
+// Socket.IO Setup
 const io = new Server(server, {
   cors: { origin: "*", methods: ["GET", "POST"] }
+});
+
+io.on("connection", (socket) => {
+  console.log("User connected:", socket.id);
+  
+  socket.on("joinOrderRoom", (orderId) => socket.join(orderId));
+  
+  socket.on("sendMessage", ({ orderId, message, sender }) => {
+    io.to(orderId).emit("receiveMessage", { message, sender, time: new Date() });
+  });
+
+  socket.on("disconnect", () => console.log("User disconnected"));
 });
 
 // --- SET PORT TO 5010 ---

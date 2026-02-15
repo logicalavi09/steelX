@@ -1,9 +1,13 @@
 import express from "express";
-import { generateInvoice } from "../controllers/invoiceController.js";
+import { updateStock, getInventoryByBranch } from "../controllers/inventoryController.js";
 import { protect, authorizeRoles } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-router.get("/:orderId", protect, authorizeRoles("admin", "staff", "customer"), generateInvoice);
+// Stock update sirf Admin ya Staff kar sakta hai
+router.post("/update", protect, authorizeRoles("admin", "staff"), updateStock);
+
+// Kisi specific branch ka inventory dekhna
+router.get("/:branchId", protect, getInventoryByBranch);
 
 export default router;
